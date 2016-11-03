@@ -1,0 +1,181 @@
+<script name="Netlogin Configuration">
+  <comments></comments>
+  <category>,Authentication Device Configuration,</category>
+  <defaultCategory></defaultCategory>
+  <content>enable cli scripting
+#@MetaDataStart
+#@DetailDescriptionStart
+#############################################################################
+# Extreme Networks(R) CLI Scripting Library
+#
+# Script        : Netlogin /Radius  Device  Configuration
+# Revision      : 1.0
+# Last Updated  : December 1, 2015
+#
+#####################################################################
+#@DetailDescriptionEnd
+#############################################################################################
+# Define identity management configuration parameters in this section.
+#############################################################################################
+# @SectionStart (description = Netlogin configuration properties)
+#############################################################################################
+# Define your user parameters in this section. For reference, see bundled scripts.
+#############################################################################################
+
+# @VariableFieldLabel &quot;If this script encounters errors, do you wish to abort or ignore?&quot;
+set var ynCliModeAbortIgnore ignore
+
+################################################################################
+#  Radius Variable definitions
+################################################################################
+
+# @VariableFieldLabel (description =&quot;Configure And Enable RADIUS For Switch Management,validValues = [yes,no])
+set var ynradiusmgmt no
+# @VariableFieldLabel &quot;RADIUS Server IP Address (SW Management)&quot;
+set var radservermgmt 192.168.20.81
+# @VariableFieldLabel &quot;RADIUS Client IP Address (SW Management)&quot;
+set var radclientmgmt 192.168.30.130
+# @VariableFieldLabel &quot;RADIUS Server Shared Secret (SW Management)&quot;
+set var radsecretmgmt ETS_TAG_SHARED_SECRET
+# @VariableFieldLabel (description = Is The RADIUS Server Shared Secret Encrypted,validValues =[yes,no])
+set var ynradsecretmgmt no
+# @VariableFieldLabel (description = Configure and enable RADIUS Accounting for Network Mgmt,validValues=[yes,no])
+set var ynradiusacctmgmt no
+# @VariableFieldLabel (description = Configure and enable RADIUS for Network Login,validValues = [yes,no])
+set var ynradiusnetlogin no
+# @VariableFieldLabel &quot;RADIUS Server IP Address (Netlogin)&quot;
+set var radservernetlogin 192.168.20.81
+# @VariableFieldLabel &quot;RADIUS Client IP Address (Netlogin)&quot;
+set var radclientnetlogin 192.168.30.130
+# @VariableFieldLabel &quot;RADIUS Server Shared Secret (Netlogin)&quot;
+set var radsecretnetlogin ETS_TAG_SHARED_SECRET
+# @VariableFieldLabel (description = Is The RADIUS Server Shared Secret Encrypted,validValues =[yes,no])
+set var ynradsecretnetlogin no
+# @VariableFieldLabel (description= Configure and enable RADIUS Accounting for Network Login,validValues=[yes,no]
+set var ynradiusacctnetlogin no
+# @VariableFieldLabel &quot;VR&quot;
+set var vr VR-Default
+
+################################################################################
+#  Netlogin Variable definitions
+################################################################################
+# @VariableFieldLabel (description = &quot;Globally Enable/disable Netlogin&quot;, validValues = [enable, disable])
+set var activate disable
+# @SeparatorLine
+# @VariableFieldLabel (description = &quot;Network Login Port Authentication Order&quot; ,validValues =[dot1x mac, dot1x,mac,])
+set var netloginorder mac
+# @VariableFieldLabel &quot;Mac Mask&quot;
+set var macmask  &quot;FF:FF:FF:FF:FF:FF&quot;
+# @SeparatorLine
+# @SectionEnd
+#@MetaDataEnd
+# Enter all CLI commands from here
+IF ($ynCliModeAbortIgnore == &quot;ignore&quot;) THEN
+ configure cli mode scripting ignore-error
+ELSE
+  configure cli mode scripting abort-on-error
+ENDIF
+
+################################################################################
+# RADIUS MGMT ACCESS
+################################################################################
+ if (!$match($ynradiusmgmt,yes)) then
+  create log entry &quot;Configure RADIUS Switch Management&quot;
+  if (!$match($ynradsecretmgmt,yes)) then
+    config radius mgmt-access primary shared-secret encrypted $radsecretmgmt
+    create log entry &quot;RADIUS mgmt secret encryted&quot;
+  else
+    config radius mgmt-access primary shared-secret $radsecretmgmt
+    create log entry &quot;RADIUS mgmt secret not encrypted&quot;
+  
+  
+  config radius mgmt-access primary server $radservermgmt client-ip $radclientmgmt vr $vr
+  enable radius mgmt-access
+  create log entry &quot;RADIUS Switch Management Enabled&quot;
+  endif
+else
+  create log entry &quot;No Radius mgmt&quot;
+endif
+if (!$match($ynradiusacctmgmt,yes)) then
+   if (!$match($ynradsecretmgmt,yes)) then
+   configure radius-accounting mgmt-access primary shared-secret encrypted $radsecretmgmt
+   else
+   configure radius-accounting mgmt-access primary shared-secret $radsecretmgmt
+   endif
+   configure radius-accounting mgmt-access primary server $radservermgmt client-ip $radclientmgmt vr $vr
+   enable radius-accounting mgmt-access
+   create log entry &quot;RADIUS_Accounting Switch Management Enabled&quot;
+else 
+   create log entry &quot;No Radius_Accounting mgmt&quot;
+
+endif
+   
+################################################################################
+# RADIUS NetLogin
+################################################################################
+create log entry &quot;RADIUS Netlogin Configuration&quot;
+if (!$match($ynradiusnetlogin,yes)) then
+ if (!$match($ynradsecretnetlogin,yes)) then
+  config radius netlogin primary shared-secret encrypted $radsecretnetlogin 
+  create log entry &quot;Config RADIUS secret encrypted&quot;
+ else
+  config radius netlogin primary shared-secret $radsecretnetlogin
+  create log entry &quot;Config RADIUS secret NOT encrypted&quot;
+endif
+  config radius netlogin primary server $radservernetlogin client-ip $radclientnetlogin vr $vr
+  enable radius netlogin
+  create log entry &quot;Network Login Configuration Complete&quot;
+else 
+   create log entry &quot;No Radius Netlogin Configured&quot;
+
+endif
+
+if (!$match($ynradiusacctnetlogin,yes)) then
+   if (!$match($ynradsecretnetlogin,yes)) then
+   configure radius-accounting mgmt-access primary shared-secret encrypted $radsecretnetlogin
+   else
+   configure radius-accounting mgmt-access primary shared-secret $radsecretnetlogin
+   endif
+   configure radius-accounting netlogin primary server $radservernetlogin client-ip $radclientnetlogin vr $vr
+   enable radius-accounting netlogin
+   create log entry &quot;RADIUS_Accounting Netlogin Enabled&quot;
+else 
+   create log entry &quot;No Radius_Accounting Netlogin&quot;
+endif
+
+
+
+################################################################################
+# NetLogin
+################################################################################
+if ($activate == &quot;enable&quot;) THEN 
+create log entry &quot;Netlogin&quot;
+  create log entry &quot;Starting Network Login Configuration&quot;
+  create vlan nvlan
+  config netlogin vlan nvlan
+  enable netlogin $netloginorder
+  configure netlogin add mac-list $macmask 
+  create log entry &quot;Network Login Configuration Complete&quot;
+  
+ELSE
+
+   disable netlogin dot1x
+   disable netlogin mac
+   disable netlogin web-based
+   disable netlogin port all mac
+   disable netlogin port all dot1x
+   disable netlogin port all web-based
+endif </content>
+  <creator>root</creator>
+  <creationDate>1441123742888</creationDate>
+  <contexts>,Device,</contexts>
+  <supprotedGroups>,My Network/ports serveurs/,</supprotedGroups>
+  <roles>,NetSight Administrator,</roles>
+  <saveConfigOnExit>false</saveConfigOnExit>
+  <menuScope>NONE</menuScope>
+  <scriptTimeout>60</scriptTimeout>
+  <miscXMLData></miscXMLData>
+  <rollbackScript></rollbackScript>
+  <postprocessScript></postprocessScript>
+  <scriptOwner></scriptOwner>
+</script>
